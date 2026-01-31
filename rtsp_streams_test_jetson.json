@@ -1,0 +1,251 @@
+{
+  "recovery": {
+    "rtsp_max_retries": 3,
+    "decoder_max_retries": 3,
+    "rtsp_retry_interval_ms": 1000,
+    "decoder_retry_interval_ms": 1000,
+    "transition_timeout_ms": 10000
+  },
+  "streams": [
+    {
+      "camera_id": 0,
+      "rtsp_url": "rtsp://192.168.1.2:8554/stream",
+      "width": 1920,
+      "height": 1080,
+      "format": "NV12",
+      "fps": 30,
+      "name": "DVR",
+      "use_tcp": false,
+      "use_content_base": true,
+      "timeout_sec": 10,
+      "buffer_count": 10,
+      "match_buflist_id": 0,
+      "set_param": {
+        "enable": false,
+        "package_name_hash": "3384725757"
+      },
+      "recovery": {
+        "rtsp_max_retries": -1,
+        "decoder_max_retries": -1,
+        "rtsp_retry_interval_ms": 1000,
+        "decoder_retry_interval_ms": 1000,
+        "transition_timeout_ms": 10000
+      }
+    },
+    {
+      "camera_id": 1,
+      "rtsp_url": "rtsp://192.168.1.2:8555/stream",
+      "width": 1920,
+      "height": 1080,
+      "format": "NV12",
+      "fps": 20,
+      "name": "AVM_1_0",
+      "use_tcp": true,
+      "use_content_base": true,
+      "timeout_sec": 10,
+      "buffer_count": 10,
+      "match_buflist_id": 0,
+      "set_param": {
+        "enable": false,
+        "package_name_hash": "4164936648"
+      }
+    },
+    {
+      "camera_id": 2,
+      "rtsp_url": "rtsp://192.168.1.2:8556/stream",
+      "width": 1920,
+      "height": 1080,
+      "format": "NV12",
+      "fps": 20,
+      "name": "AVM_1_0",
+      "use_tcp": true,
+      "use_content_base": true,
+      "timeout_sec": 15,
+      "buffer_count": 10,
+      "match_buflist_id": 0,
+      "set_param": {
+        "enable": false,
+        "package_name_hash": "4164936648"
+      }
+    },
+    {
+      "camera_id": 3,
+      "rtsp_url": "rtsp://127.0.0.1:8557/stream",
+      "width": 1920,
+      "height": 1280,
+      "format": "NV12",
+      "fps": 30,
+      "use_tcp": true,
+      "name": "AVM_1_0",
+      "use_content_base": true,
+      "timeout_sec": 15,
+      "buffer_count": 10,
+      "match_buflist_id": 0,
+      "set_param": {
+        "enable": false,
+        "package_name_hash": "4164936648"
+      }
+    },
+    {
+      "camera_id": 4,
+      "rtsp_url": "rtsp://127.0.0.1:8558/stream",
+      "width": 1920,
+      "height": 1280,
+      "format": "NV12",
+      "fps": 30,
+      "name": "AVM_1_0",
+      "use_tcp": true,
+      "use_content_base": true,
+      "timeout_sec": 15,
+      "buffer_count": 10,
+      "match_buflist_id": 0,
+      "set_param": {
+        "enable": false,
+        "package_name_hash": "4164936648"
+      }
+    },
+    {
+      "camera_id": 5,
+      "rtsp_url": "rtsp://127.0.0.1:8559/stream",
+      "width": 1920,
+      "height": 1280,
+      "format": "NV12",
+      "fps": 30,
+      "name": "AVM_1_0",
+      "use_tcp": true,
+      "use_content_base": true,
+      "timeout_sec": 15,
+      "buffer_count": 10,
+      "match_buflist_id": 0,
+      "set_param": {
+        "enable": false,
+        "package_name_hash": "4164936648"
+      }
+    },
+    {
+      "camera_id": 6,
+      "rtsp_url": "rtsp://127.0.0.1:8560/stream",
+      "width": 1920,
+      "height": 1280,
+      "format": "NV12",
+      "fps": 30,
+      "name": "AVM_1_0",
+      "use_tcp": true,
+      "use_content_base": true,
+      "timeout_sec": 15,
+      "buffer_count": 10,
+      "match_buflist_id": 0,
+      "set_param": {
+        "enable": false,
+        "package_name_hash": "4164936648"
+      }
+    },
+    {
+      "camera_id": 7,
+      "rtsp_url": "rtsp://127.0.0.1:8561/stream",
+      "width": 1024,
+      "height": 1024,
+      "format": "NV12",
+      "fps": 30,
+      "name": "AVM_1_0",
+      "use_tcp": true,
+      "use_content_base": true,
+      "timeout_sec": 15,
+      "buffer_count": 10,
+      "match_buflist_id": 0,
+      "set_param": {
+        "enable": false,
+        "package_name_hash": "4164936648"
+      }
+    },
+    {
+      "camera_id": 8,
+      "rtsp_url": "rtsp://127.0.0.1:8562/stream",
+      "width": 1024,
+      "height": 1024,
+      "format": "NV12",
+      "fps": 30,
+      "name": "AVM_1_0",
+      "use_tcp": true,
+      "use_content_base": true,
+      "timeout_sec": 15,
+      "buffer_count": 10,
+      "match_buflist_id": 0,
+      "set_param": {
+        "enable": false,
+        "package_name_hash": "4164936648"
+      }
+    },
+    {
+      "camera_id": 9,
+      "rtsp_url": "rtsp://127.0.0.1:8563/stream",
+      "width": 2048,
+      "height": 1984,
+      "format": "NV12",
+      "fps": 30,
+      "use_tcp": false,
+      "use_content_base": true,
+      "timeout_sec": 15,
+      "buffer_count": 10,
+      "match_buflist_id": 0,
+      "set_param": {
+        "enable": false,
+        "package_name_hash": "4164936648"
+      }
+    },
+    {
+      "camera_id": 10,
+      "rtsp_url": "rtsp://127.0.0.1:8564/stream",
+      "width": 1920,
+      "height": 1080,
+      "format": "NV12",
+      "fps": 30,
+      "name": "DVR",
+      "use_tcp": true,
+      "use_content_base": true,
+      "timeout_sec": 15,
+      "buffer_count": 10,
+      "match_buflist_id": 0,
+     "set_param": {
+        "enable": false,
+        "package_name_hash": "3384725757"
+      }
+    },
+    {
+      "camera_id": 11,
+      "rtsp_url": "rtsp://127.0.0.1:8565/stream",
+      "width": 1920,
+      "height": 1080,
+      "format": "NV12",
+      "fps": 20,
+      "name": "DVR",
+      "use_tcp": true,
+      "use_content_base": true,
+      "timeout_sec": 15,
+      "buffer_count": 10,
+      "match_buflist_id": 0,
+     "set_param": {
+        "enable": false,
+        "package_name_hash": "3384725757"
+      }
+    },
+     {
+      "camera_id": 12,
+      "rtsp_url": "rtsp://127.0.0.1:8566/stream",
+      "width": 1920,
+      "height": 1080,
+      "format": "NV12",
+      "fps": 30,
+      "name": "DVR",
+      "use_tcp": true,
+      "use_content_base": true,
+      "timeout_sec": 15,
+      "buffer_count": 10,
+      "match_buflist_id": 0,
+      "set_param": {
+        "enable": false,
+        "package_name_hash": "3384725757"
+      }
+    }
+  ]
+}

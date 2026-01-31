@@ -1,0 +1,128 @@
+{
+  "camera": {
+    "device": "/dev/video0",
+    "input_format": "mjpeg",
+    "input_width": 1920,
+    "input_height": 1080,
+    "framerate": 30
+  },
+  "streams": [
+    {
+      "name": "camera0",
+      "enable": true,
+      "port": 8554,
+      "mount": "/stream",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 6000
+    },
+    {
+      "name": "camera1",
+      "enable": true,
+      "port": 8555,
+      "mount": "/stream",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 6000
+    },
+    {
+      "name": "camera2",
+      "enable": true,
+      "port": 8556,
+      "mount": "/stream",
+      "width": 1280,
+      "height": 720,
+      "bitrate": 4000
+    },
+    {
+      "name": "camera3",
+      "enable": true,
+      "port": 8557,
+      "mount": "/stream",
+      "width": 1280,
+      "height": 720,
+      "bitrate": 4000
+    },
+    {
+      "name": "camera4",
+      "enable": true,
+      "port": 8558,
+      "mount": "/stream",
+      "width": 1280,
+      "height": 720,
+      "bitrate": 4000
+    },
+    {
+      "name": "camera5",
+      "enable": true,
+      "port": 8559,
+      "mount": "/stream",
+      "width": 1280,
+      "height": 720,
+      "bitrate": 4000
+    },
+    {
+      "name": "camera6",
+      "enable": true,
+      "port": 8560,
+      "mount": "/stream",
+      "width": 640,
+      "height": 480,
+      "bitrate": 2000
+    },
+    {
+      "name": "camera7",
+      "enable": true,
+      "port": 8561,
+      "mount": "/stream",
+      "width": 640,
+      "height": 480,
+      "bitrate": 2000
+    },
+    {
+      "name": "camera8",
+      "enable": false,
+      "port": 8562,
+      "mount": "/stream",
+      "width": 1024,
+      "height": 1024,
+      "bitrate": 4000
+    },
+    {
+      "name": "camera9",
+      "enable": false,
+      "port": 8563,
+      "mount": "/stream",
+      "width": 2048,
+      "height": 1984,
+      "bitrate": 8000
+    },
+    {
+      "name": "camera10",
+      "enable": false,
+      "port": 8564,
+      "mount": "/stream",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 8000
+    },
+    {
+      "name": "camera11",
+      "enable": false,
+      "port": 8565,
+      "mount": "/stream",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 8000
+    },
+    {
+      "name": "camera12",
+      "enable": false,
+      "port": 8566,
+      "mount": "/stream",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 8000
+    }
+  ]
+}

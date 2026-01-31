@@ -1,0 +1,63 @@
+{
+  "port": 8554,
+  "streams": [
+    {
+      "name": "USB 摄像头 1",
+      "enable": false,
+      "mount": "/stream",
+      "port": 8554,
+      "source": "usb",
+      "device": "/dev/video0",
+      "input_format": "mjpeg",
+      "input_width": 1280,
+      "input_height": 720,
+      "output_width": 1920,
+      "output_height": 1080,
+      "codec": "h265",
+      "bitrate": 9000,
+      "framerate": 30
+    },
+    {
+      "name": "USB 摄像头 2",
+      "enable": true,
+      "mount": "/stream",
+      "port": 8555,
+      "source": "usb",
+      "device": "/dev/video1",
+      "input_format": "mjpeg",
+      "input_width": 1920,
+      "input_height": 1080,
+      "output_width": 1920,
+      "output_height": 1080,
+      "codec": "h265",
+      "bitrate": 9000,
+      "framerate": 30
+    },
+    {
+      "name": "IP 摄像头 1",
+      "enable": false,
+      "mount": "/stream",
+      "port": 8556,
+      "source": "rtsp",
+      "url": "rtsp://192.168.1.100:554/stream1",
+      "input_codec": "h264",
+      "output_width": 1920,
+      "output_height": 1080,
+      "codec": "h265",
+      "bitrate": 9000
+    },
+    {
+      "name": "IP 摄像头 2 (H.265)",
+      "enable": false,
+      "mount": "/stream",
+      "port": 8557,
+      "source": "rtsp",
+      "url": "rtsp://192.168.1.101:554/stream1",
+      "input_codec": "h265",
+      "output_width": 1920,
+      "output_height": 1080,
+      "codec": "h265",
+      "bitrate": 9000
+    }
+  ]
+}
