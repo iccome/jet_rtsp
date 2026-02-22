@@ -4,21 +4,51 @@ Jetson 多分辨率 RTSP 服务器
 一路摄像头输出多个不同分辨率的 H.265 RTSP 流，每个分辨率使用独立端口
 使用 GStreamer tee 元素实现真正的单源多流
 
-架构:
-                      +-> queue -> nvvidconv (1080p) -> nvv4l2h265enc -> rtph265pay -> udpsink :5000
+优化架构 (相同分辨率共享编码器):
+                      +-> nvvidconv (1080p) -> encoder -> tee_0 -> rtph265pay -> udpsink :15000 (stream0)
+                      |                                       |-> rtph265pay -> udpsink :15001 (stream1)
+                      |                                       +-> rtph265pay -> udpsink :15002 (stream2)
+v4l2src -> decode -> tee
                       |
-v4l2src -> decode -> tee -> queue -> nvvidconv (720p)  -> nvv4l2h265enc -> rtph265pay -> udpsink :5001
-                      |
-                      +-> queue -> nvvidconv (480p)  -> nvv4l2h265enc -> rtph265pay -> udpsink :5002
+                      +-> nvvidconv (720p) -> encoder -> tee_1 -> rtph265pay -> udpsink :15003 (stream3)
+                                                             +-> rtph265pay -> udpsink :15004 (stream4)
 
-RTSP Server (port 8554): udpsrc :5000 -> rtph265depay -> rtph265pay -> client
-RTSP Server (port 8555): udpsrc :5001 -> rtph265depay -> rtph265pay -> client
-...
+优势: 13路输出只需要 4 个编码器 (按分辨率分组)，大幅降低 CPU/NVENC 负载
+
+RTSP Server: udpsrc -> rtph265depay -> rtph265pay -> client
 """
 
 import sys
+import os
 import argparse
 import json
+import ctypes
+
+# 抑制 GStreamer CRITICAL 警告 (gst_buffer_resize_range)
+os.environ['GST_DEBUG'] = '0'
+
+# 使用 ctypes 抑制 GLib 日志
+def _suppress_glib_warnings():
+    """抑制 GLib/GStreamer CRITICAL 警告"""
+    try:
+        # 加载 GLib 库
+        libglib = ctypes.CDLL('libglib-2.0.so.0')
+        # 设置日志处理器为空函数
+        G_LOG_LEVEL_CRITICAL = 1 << 3
+        G_LOG_LEVEL_WARNING = 1 << 4
+        # g_log_set_handler returns handler_id
+        log_func = ctypes.CFUNCTYPE(None, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_void_p)
+
+        def null_handler(domain, level, message, user_data):
+            pass
+
+        _null_handler = log_func(null_handler)
+        libglib.g_log_set_handler(b"GStreamer", G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING, _null_handler, None)
+    except Exception:
+        pass  # 如果失败，忽略
+
+_suppress_glib_warnings()
+
 import gi
 
 gi.require_version('Gst', '1.0')
@@ -43,6 +73,7 @@ class MultiResolutionRTSPServer:
 
         self.camera_config = self.config['camera']
         self.stream_configs = [s for s in self.config['streams'] if s.get('enable', True)]
+        self.on_demand = self.config.get('on_demand', False)
 
         if not self.stream_configs:
             raise ValueError("没有启用任何输出流")
@@ -50,15 +81,69 @@ class MultiResolutionRTSPServer:
         self.main_pipeline = None
         self.servers = {}  # port -> RTSPServer
         self.loop = None
+        self.client_count = 0  # 当前连接的客户端数量
+        self.pipeline_str = None  # 缓存的 pipeline 字符串
 
         # UDP 基础端口（内部使用，用于 pipeline 到 RTSP 的连接）
         self.udp_base_port = 15000
 
+    def _start_pipeline(self):
+        """启动主 pipeline"""
+        if self.main_pipeline is not None:
+            return  # 已经在运行
+
+        print("\n[按需启动] 启动编码 pipeline...")
+        try:
+            self.main_pipeline = Gst.parse_launch(self.pipeline_str)
+            bus = self.main_pipeline.get_bus()
+            bus.add_signal_watch()
+            bus.connect("message", self._on_bus_message)
+            ret = self.main_pipeline.set_state(Gst.State.PLAYING)
+            if ret == Gst.StateChangeReturn.FAILURE:
+                print("[按需启动] 错误: 无法启动 pipeline")
+                self.main_pipeline = None
+            else:
+                print("[按需启动] Pipeline 已启动")
+        except GLib.Error as e:
+            print(f"[按需启动] 错误: {e.message}")
+            self.main_pipeline = None
+
+    def _stop_pipeline(self):
+        """停止主 pipeline"""
+        if self.main_pipeline is None:
+            return  # 没有在运行
+
+        print("\n[按需启动] 停止编码 pipeline...")
+        self.main_pipeline.set_state(Gst.State.NULL)
+        self.main_pipeline = None
+        print("[按需启动] Pipeline 已停止")
+
+    def _on_client_connected(self, client, media):
+        """客户端连接回调"""
+        self.client_count += 1
+        print(f"\n[客户端] 连接 (当前: {self.client_count})")
+        if self.on_demand and self.client_count == 1:
+            self._start_pipeline()
+
+    def _on_client_disconnected(self, client):
+        """客户端断开回调"""
+        self.client_count = max(0, self.client_count - 1)
+        print(f"\n[客户端] 断开 (当前: {self.client_count})")
+        if self.on_demand and self.client_count == 0:
+            # 延迟停止，避免频繁启停
+            GLib.timeout_add_seconds(5, self._check_and_stop_pipeline)
+
+    def _check_and_stop_pipeline(self):
+        """检查并停止 pipeline（延迟执行）"""
+        if self.client_count == 0:
+            self._stop_pipeline()
+        return False  # 不重复执行
+
     def _build_main_pipeline(self) -> str:
         """
-        构建主 pipeline 字符串
+        构建主 pipeline 字符串 (优化版：相同分辨率共享编码器)
 
-        摄像头 -> 解码 -> tee -> 多个分支 (缩放 -> 编码 -> UDP)
+        摄像头 -> 解码 -> tee -> 多个分支 (缩放 -> 编码 -> tee2 -> 多个 UDP)
         """
         cam = self.camera_config
         device = cam.get('device', '/dev/video0')
@@ -96,26 +181,52 @@ class MultiResolutionRTSPServer:
                 f' ! nvvidconv ! video/x-raw(memory:NVMM),format=NV12'
             )
 
-        # 添加 tee
+        # 添加主 tee
         pipeline += ' ! tee name=t'
 
-        # 为每个流添加分支
+        # 按分辨率分组流配置
+        resolution_groups = {}
         for i, stream_config in enumerate(self.stream_configs):
             out_width = stream_config.get('width', 1920)
             out_height = stream_config.get('height', 1080)
-            bitrate = stream_config.get('bitrate', 4000) * 1000  # kbps -> bps
-            udp_port = self.udp_base_port + i
+            key = (out_width, out_height)
+            if key not in resolution_groups:
+                resolution_groups[key] = []
+            resolution_groups[key].append((i, stream_config))
 
+        # 记录分组信息用于显示
+        self.resolution_groups = resolution_groups
+
+        # 为每个分辨率组创建一个编码分支
+        for group_idx, ((out_width, out_height), streams) in enumerate(resolution_groups.items()):
+            # 使用组内第一个流的比特率
+            first_stream = streams[0][1]
+            bitrate = first_stream.get('bitrate', 4000) * 1000
+            out_framerate = first_stream.get('framerate', cam.get('framerate', 30))
+
+            # 分辨率组的 tee 名称
+            tee_name = f'tee_{group_idx}'
+
+            # 编码分支：源 tee -> 缩放 -> 编码 -> 组内 tee
             branch = (
-                f' t. ! queue max-size-buffers=5 max-size-time=0 max-size-bytes=0 leaky=downstream'
+                f' t. ! queue max-size-buffers=10 max-size-time=0 max-size-bytes=0 leaky=downstream'
                 f' ! nvvidconv'
                 f' ! video/x-raw(memory:NVMM),width={out_width},height={out_height},format=NV12'
-                f' ! nvv4l2h265enc bitrate={bitrate} preset-level=1 iframeinterval=30 insert-sps-pps=true'
+                f' ! nvv4l2h265enc bitrate={bitrate} preset-level=1 iframeinterval=10 insert-sps-pps=true maxperf-enable=true'
                 f' ! h265parse config-interval=1'
-                f' ! rtph265pay pt=96 config-interval=1 mtu=1400'
-                f' ! udpsink host=127.0.0.1 port={udp_port} sync=false async=false buffer-size=2097152'
+                f' ! tee name={tee_name}'
             )
             pipeline += branch
+
+            # 为组内每个流添加 UDP 输出
+            for stream_idx, stream_config in streams:
+                udp_port = self.udp_base_port + stream_idx
+                udp_branch = (
+                    f' {tee_name}. ! queue max-size-buffers=10 max-size-time=0 max-size-bytes=0'
+                    f' ! rtph265pay pt=96 config-interval=1 mtu=1400'
+                    f' ! udpsink host=127.0.0.1 port={udp_port} sync=false async=false buffer-size=4194304'
+                )
+                pipeline += udp_branch
 
         return pipeline
 
@@ -129,11 +240,11 @@ class MultiResolutionRTSPServer:
 
         # 从 UDP 接收 RTP 包，解包后重新打包发送
         pipeline = (
-            f'( udpsrc port={udp_port} buffer-size=2097152 caps="application/x-rtp,media=video,'
+            f'( udpsrc port={udp_port} buffer-size=4194304 caps="application/x-rtp,media=video,'
             f'encoding-name=H265,payload=96,clock-rate=90000"'
             f' ! queue max-size-buffers=10 max-size-time=0 max-size-bytes=0'
             f' ! rtph265depay ! h265parse config-interval=1'
-            f' ! rtph265pay name=pay0 pt=96 config-interval=1 )'
+            f' ! rtph265pay name=pay0 pt=96 config-interval=1 mtu=1400 )'
         )
 
         factory = GstRtspServer.RTSPMediaFactory()
@@ -199,6 +310,14 @@ class MultiResolutionRTSPServer:
             print("错误: 无法启动主 pipeline")
             sys.exit(1)
 
+        # 显示优化信息
+        print(f"\n编码器优化:")
+        print(f"  总流数: {len(self.stream_configs)} 路")
+        print(f"  编码器数: {len(self.resolution_groups)} 个 (按分辨率共享)")
+        for (w, h), streams in self.resolution_groups.items():
+            stream_names = [s[1]['name'] for s in streams]
+            print(f"    {w}x{h}: {len(streams)} 路 ({', '.join(stream_names)})")
+
         print(f"\n输出流 ({len(self.stream_configs)} 路):")
 
         # 为每个流创建 RTSP 服务器
@@ -220,8 +339,9 @@ class MultiResolutionRTSPServer:
             factory = self._create_rtsp_factory(i)
             mounts.add_factory(mount, factory)
 
+            out_framerate = stream_config.get('framerate', self.camera_config.get('framerate', 30))
             print(f"\n  [{name}]")
-            print(f"    分辨率: {stream_config['width']}x{stream_config['height']}")
+            print(f"    分辨率: {stream_config['width']}x{stream_config['height']} @ {out_framerate}fps")
             print(f"    比特率: {stream_config['bitrate']} kbps")
             print(f"    端口: {port}")
             print(f"    挂载点: {mount}")
@@ -330,6 +450,7 @@ def main():
         "mount": "/stream",
         "width": 1280,
         "height": 720,
+        "framerate": 15,
         "bitrate": 4000
       }
     ]
